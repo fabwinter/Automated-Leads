@@ -153,85 +153,160 @@ Create `/templates/thai_restaurant/template.html`:
 
 ---
 
-## Phase 2: Outreach Queue (Week 3)
+## Phase 2: Outreach Queue ✅ COMPLETE
 
-### 1. Outreach Table (already in schema)
+### ✅ What's Built
 
-### 2. Implement Draft Generator (`/workers/engine/src/handlers/draft.ts`)
+- ✅ Outreach table (already in schema)
+- ✅ Draft generator handler (`/workers/engine/src/handlers/draft.ts`)
+  - Calls Claude: business data + issues → subject + body
+  - Stores in outreach table with status=draft
+- ✅ Resend email service (`/workers/engine/src/services/resend.ts`)
+  - Sends HTML emails via Resend API
+  - Requires verified sender domain
+- ✅ Dashboard outreach queue (`/apps/dashboard/src/app/runs/[runId]/outreach/page.tsx`)
+  - Table of draft emails
+  - Edit, approve, send workflow
+  - Email status tracking (draft → approved → sent → bounced/replied)
+- ✅ API routes
+  - POST `/api/draft` — generate draft
+  - GET/PUT `/api/outreach` — manage outreach records
+  - POST `/api/send-email` — send via Resend
 
-```typescript
-// Input: lead + audit + demo_url
-// 1. Compose subject: "made this for {{BUSINESS_NAME}}"
-// 2. Compose body from template (issue_summary + price)
-// 3. Upsert outreach row with status='draft'
-// 4. Include sender ID + unsubscribe link
-```
+### 📖 Documentation
 
-### 3. Dashboard Outreach Queue
-
-- `/apps/dashboard/src/app/runs/[runId]/outreach/page.tsx`
-- Table: draft emails, approve/edit, send button
-- Send: integrate Resend API
-- Track: sent_at timestamp, reply_body field
-
-### 4. Follow-Up Cron
-
-- `/workers/engine/src/handlers/cron.ts`
-- Nightly: select sent leads from 3 days ago with no reply
-- Auto-draft follow-up (status='draft', new record)
+- See `/PHASE_2.md` for full Phase 2 user guide
+- Setup: Add RESEND_API_KEY and RESEND_FROM_EMAIL to .env
 
 ---
 
-## Phase 3: Orchestration & Scale (Week 4)
+## Phase 3: Automation & Scheduling (Week 4+)
 
-### 1. Cloudflare Workflow
+### Priority 1: Scheduled Discovery (Nightly Cron)
 
-- Wrap Phases 0–2 in one durable workflow
-- Steps: discover → fan-out enrich/audit → score → generate → deploy → draft
+Auto-discover new leads on a schedule (no manual "New Run" clicks).
 
-### 2. Queues
+- Create `discovery_schedules` table in Supabase
+- Dashboard settings page to configure niche + city list
+- Cloudflare Worker Scheduler: run every night at 2 AM UTC
+- Kick off `/discover` endpoint for each niche/city combo
+- Show last run time + next scheduled run in UI
 
-- Use Cloudflare Queues for fan-out (1 city → N leads → N audits)
-- Batch audit processing with concurrency control
+**Files to create:**
+- `/workers/engine/src/handlers/scheduled-discovery.ts`
+- `/apps/dashboard/src/app/settings/discovery/page.tsx`
+- `/apps/dashboard/src/app/api/discovery-config/route.ts`
 
-### 3. Nightly Cron
+**Estimated effort:** 2–4 hours
 
-- Trigger workflow via scheduled Cron
-- Re-audit old leads (staleness check)
-- Auto-draft follow-ups
+### Priority 2: Follow-up Email Scheduling
 
-### 4. Video Capture (Optional)
+Auto-draft follow-up emails at +3 days, +7 days, +14 days post-send.
 
-- Browser Rendering scroll → MP4 via ffmpeg
+- Extend outreach table with follow_up_*_at, follow_up_*_sent fields
+- Daily cron task: check if follow-ups are due
+- Call Claude with original email + context → generate follow-up
+- Insert new outreach record as draft (linked to parent)
+- Dashboard shows follow-up chain
+
+**Files to create:**
+- `/workers/cron/src/index.ts` (scheduled cron worker)
+- `/workers/cron/wrangler.toml`
+- `/workers/engine/src/handlers/follow-up.ts`
+
+**Estimated effort:** 3–5 hours
+
+### Priority 3: Reply Detection (Resend Webhooks)
+
+Automatically detect and mark replies in dashboard.
+
+- Use Resend Webhooks (easier than email forwarding)
+- Create webhook receiver endpoint
+- Parse Resend reply events → update outreach status
+- Dashboard shows "Replied" status + reply preview
+
+**Files to create:**
+- `/apps/dashboard/src/app/api/webhooks/resend/route.ts`
+
+**Estimated effort:** 2–3 hours
+
+### Optional: Lead Pipeline Dashboard
+
+Visual Kanban-style pipeline view (discovery → audited → qualified → demo → sent).
+
+- `/apps/dashboard/src/app/runs/[runId]/pipeline/page.tsx`
+- Columns per lead status with card count + stats
+- Click to open lead modal
+
+**Estimated effort:** 2–3 hours
+
+### Optional: Browser Video Recording
+
+Record short video of demo site (alternative to screenshot).
+
+- Extend screenshot service to record .webm video (5–10 seconds)
+- Upload to R2, store video_url in demos table
+- Dashboard shows video player in lead modal
+
+**Estimated effort:** 2–3 hours
 
 ---
 
-## Critical Known Gaps (Fill Before Scale)
+## Critical Known Gaps
 
-1. **Email enrichment** (Places API doesn't return email)
-   - Scrape website contact page
-   - Optional: paid Hunter/Apollo API
+### Phase 0–2 (Current)
 
-2. **Phone number formatting**
-   - Validate international numbers
-   - Format for outreach region
+- **Email enrichment** (Places API doesn't return email)
+  - Currently: Using lead.email from database (if available)
+  - Fallback: Manual copy-paste to lead record
+  - Future: Scrape website contact page or Hunter/Apollo API
 
-3. **Screenshot timeout handling**
-   - What if site takes 30s to load?
-   - Fallback to placeholder?
+- **Phone number formatting**
+  - Currently: Using raw phone from Places API
+  - Needs: Validate international numbers, format per region
 
-4. **Rate limiting**
-   - Google Places: generous free tier but batch carefully
-   - PageSpeed: free tier ok, but queue with backoff
-   - Anthropic: ~3M tokens/month on free tier
+- **Screenshot timeout handling**
+  - Currently: 5s timeout, may fail on slow sites
+  - Needs: Fallback to placeholder or retry logic
 
-5. **Template authoring UX**
-   - Currently: edit HTML manually + upload to R2
-   - Future: visual builder or Figma plugin?
+- **Rate limiting & quotas**
+  - Google Places: generous free tier, but monitor usage
+  - PageSpeed: free tier ok, but queue with backoff
+  - Anthropic: ~3M tokens/month on free tier
+  - Resend: free tier 100/day; $0.30–$0.35 per 1,000 emails
 
-6. **A/B Testing**
-   - Subject line variants
-   - Demo link timing
+- **Email delivery tracking**
+  - Currently: Resend provides bounce/open webhooks (Phase 3)
+  - Manual reply marking (Phase 3: auto-detection via webhooks)
+
+### Phase 3 (Upcoming)
+
+- **Scheduled discovery**
+  - Need: Cloudflare Workers Scheduler or external trigger
+  - Needed by: Nightly automated discovery runs
+
+- **Follow-up automation**
+  - Need: Cron worker + follow-up template variants
+  - Needed by: Auto-drafting at +3, +7, +14 days
+
+- **Reply parsing**
+  - Need: Email forwarding service or Resend webhooks
+  - Needed by: Auto-detect replies and update status
+
+### Future (Post-Phase 3)
+
+- **Template authoring UX**
+  - Currently: Edit HTML manually + upload to R2
+  - Future: Visual builder or Figma plugin?
+
+- **A/B Testing**
+  - Subject line variants
+  - Demo link timing
+  - Email body copy variants
+
+- **Lead scoring refinement**
+  - Current: Static weights for badness scores
+  - Future: ML-based re-ranking or user feedback loop
 
 ---
 
@@ -271,12 +346,11 @@ ANTHROPIC_API_KEY=sk-ant-...
 CLOUDFLARE_ACCOUNT_ID=abc123
 CLOUDFLARE_API_TOKEN=v1.0...
 CLOUDFLARE_ZONE_ID=zone123  # For DNS if using custom domain
+R2_BUCKET_NAME=outreach-engine
 
-# Clerk (create app, get keys)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-CLERK_SECRET_KEY=sk_live_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+# Resend (Phase 2 — required for email sending)
+RESEND_API_KEY=re_xxxx...
+RESEND_FROM_EMAIL=noreply@yourdomain.com
 
 # Worker API
 WORKER_API_URL=https://api.yourdomain.com  # Production; localhost:8787 locally
@@ -292,22 +366,40 @@ WORKER_API_URL=https://api.yourdomain.com  # Production; localhost:8787 locally
 | `/packages/types/` | TypeScript types + Zod schemas |
 | `/packages/utils/scoring.ts` | Lead scoring algorithm |
 | `/packages/utils/issue-detection.ts` | HTML + audit heuristics |
-| `/workers/engine/src/index.ts` | Worker entry point, POST /discover |
-| `/workers/engine/src/handlers/` | discover.ts, audit.ts, (draft.ts — Phase 2) |
-| `/workers/engine/src/services/` | places.ts, pagespeed.ts, screenshot.ts, vision.ts |
+| `/workers/engine/src/index.ts` | Worker entry point, routes to handlers |
+| `/workers/engine/src/handlers/discover.ts` | Places API discovery |
+| `/workers/engine/src/handlers/audit.ts` | Full audit pipeline (PageSpeed, issues, screenshot) |
+| `/workers/engine/src/handlers/generate.ts` | Demo generation (Phase 1) |
+| `/workers/engine/src/handlers/draft.ts` | Email draft generation (Phase 2) |
+| `/workers/engine/src/services/` | places.ts, pagespeed.ts, screenshot.ts, vision.ts, resend.ts |
 | `/apps/dashboard/src/app/page.tsx` | Home, list runs |
 | `/apps/dashboard/src/app/runs/new/page.tsx` | Kickoff form |
 | `/apps/dashboard/src/app/runs/[runId]/page.tsx` | Worklist + modal |
+| `/apps/dashboard/src/app/runs/[runId]/outreach/page.tsx` | Outreach queue (Phase 2) |
+| `/apps/dashboard/src/app/api/draft/route.ts` | Draft generation endpoint (Phase 2) |
+| `/apps/dashboard/src/app/api/outreach/route.ts` | Outreach CRUD (Phase 2) |
+| `/apps/dashboard/src/app/api/send-email/route.ts` | Email sending endpoint (Phase 2) |
 | `/apps/dashboard/src/lib/supabase.ts` | Client-side DB queries |
 | `/apps/dashboard/src/app/actions.ts` | Server action: createRunAndDiscover |
+
+---
+
+## Documentation
+
+- `/README.md` — Setup, architecture, Phase 0–3 overview
+- `/PHASE_1.md` — Phase 1 (Demo Generation) detailed user guide
+- `/PHASE_2.md` — Phase 2 (Outreach Queue) detailed user guide
+- `/NEXT_STEPS.md` — This file; Phase 3+ roadmap
+- `/.env.example` — Environment variables template
 
 ---
 
 ## Questions?
 
 Refer to:
-- `/README.md` — Setup & architecture
-- `/handoff.md` (original spec) — Design decisions & constraints
-- Plan agent's detailed breakdown (context)
+- Phase documentation above
+- README for architecture overview
+- PHASE_*.md files for detailed feature guides
+- This file for roadmap and next priorities
 
 Good luck! 🚀

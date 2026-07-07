@@ -124,17 +124,19 @@ wrangler deploy
 ✅ Live preview: view generated site via shareable URL  
 ✅ Demo link in lead modal  
 
+## Phase 2 ✅ Features
+
+✅ Outreach queue: draft → approve → send (manual workflow)  
+✅ Claude email generation: personalized subject + body based on business issues  
+✅ Resend email service integration  
+✅ Dashboard outreach page: manage drafts, edit, approve, send  
+✅ Email tracking: status (draft, approved, sent, bounced, replied)  
+✅ Lead status updates: qualified → demo_ready → drafted → sent  
+
 ## Phase 2 (Coming)
 
-- Hand-built niche templates (1 per niche with `{{TOKENS}}`)
-- Claude copy-fill (JSON → token replacement)
-- Wildcard demo server (`{slug}.demos.example.com`)
-
-## Phase 2 (Coming)
-
-- Outreach queue: draft → approve → send (manual)
-- Resend email integration
-- Follow-up auto-drafting at +3 days
+- Reply detection and auto-marking in dashboard
+- Follow-up auto-drafting at +3 days, +7 days, +14 days
 
 ## Phase 3 (Coming)
 
