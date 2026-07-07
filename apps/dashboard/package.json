@@ -22,6 +22,7 @@
     "next": "^14.0",
     "react": "^18.2",
     "react-dom": "^18.2",
+    "resend": "^3.0",
     "tailwindcss-animate": "^1.0",
     "zod": "^3.22"
   },

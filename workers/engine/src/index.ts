@@ -4,6 +4,8 @@ import { createSupabaseClient } from "./lib/supabase";
 import { createR2Storage } from "./lib/r2";
 import { handleDiscover } from "./handlers/discover";
 import { handleGenerateDemo } from "./handlers/generate";
+import { handleDraft } from "./handlers/draft";
+import { Anthropic } from "@anthropic-ai/sdk";
 
 export interface Env {
   SUPABASE_URL: string;
@@ -42,6 +44,11 @@ export default {
     // Route: POST /generate-demo (Phase 1)
     if (url.pathname === "/generate-demo") {
       return await handleGenerateDemoEndpoint(request, env);
+    }
+
+    // Route: POST /draft (Phase 2)
+    if (url.pathname === "/draft") {
+      return await handleDraftEndpoint(request, env);
     }
 
     return new Response("Not found", { status: 404 });
@@ -218,6 +225,51 @@ async function handleGenerateDemoEndpoint(
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("Generate demo error:", errorMsg);
+
+    return new Response(
+      JSON.stringify({ status: "error", message: errorMsg }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+}
+
+/**
+ * Handle POST /draft request (Phase 2).
+ * Request body: { lead_id, run_id }
+ * Generates draft outreach email via Claude.
+ */
+async function handleDraftEndpoint(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  try {
+    const validatedEnv = validateEnv(env);
+    const body = (await request.json()) as { lead_id: string; run_id: string };
+
+    if (!body.lead_id || !body.run_id) {
+      return new Response(
+        JSON.stringify({ status: "error", message: "Missing required fields" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createSupabaseClient(
+      validatedEnv.SUPABASE_URL,
+      validatedEnv.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const anthropic = new Anthropic({
+      apiKey: validatedEnv.ANTHROPIC_API_KEY,
+    });
+
+    const result = await handleDraft(body, supabase, anthropic);
+
+    return new Response(JSON.stringify(result), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("Draft endpoint error:", errorMsg);
 
     return new Response(
       JSON.stringify({ status: "error", message: errorMsg }),

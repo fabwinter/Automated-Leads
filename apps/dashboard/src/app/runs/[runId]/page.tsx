@@ -108,6 +108,7 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
 
   const displayLeads = showDead ? leads : leads.filter((l) => l.status !== "dead");
   const qualifiedLeads = leads.filter((l) => l.status === "qualified");
+  const demoReadyLeads = leads.filter((l) => l.status === "demo_ready" || l.status === "drafted");
   const deadLeads = leads.filter((l) => l.status === "dead");
 
   return (
@@ -123,9 +124,17 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
               {run.audited_count}
             </p>
           </div>
+          {demoReadyLeads.length > 0 && (
+            <a
+              href={`/runs/${params.runId}/outreach`}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+            >
+              Outreach Queue ({demoReadyLeads.length})
+            </a>
+          )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="text-sm text-muted-foreground">Total Discovered</div>
             <div className="text-2xl font-bold text-foreground">{leads.length}</div>
@@ -133,6 +142,10 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="text-sm text-muted-foreground">Qualified</div>
             <div className="text-2xl font-bold text-primary">{qualifiedLeads.length}</div>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-sm text-muted-foreground">Demo Ready</div>
+            <div className="text-2xl font-bold text-blue-600">{demoReadyLeads.length}</div>
           </div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="text-sm text-muted-foreground">Dead</div>
@@ -179,6 +192,9 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
                 <th className="text-left py-3 px-4 font-medium text-foreground">
                   Status
                 </th>
+                <th className="text-right py-3 px-4 font-medium text-foreground">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -216,24 +232,34 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
                       {lead.priority.toFixed(0)}
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusColor}`}
+                      <span
+                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusColor}`}
+                      >
+                        {lead.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      {lead.status === "qualified" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            generateDemo(lead.id);
+                          }}
+                          disabled={generatingDemoId === lead.id}
+                          className="text-xs px-3 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
                         >
-                          {lead.status}
-                        </span>
-                        {lead.status === "qualified" && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              generateDemo(lead.id);
-                            }}
-                            className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-                          >
-                            Generate Demo
-                          </button>
-                        )}
-                      </div>
+                          {generatingDemoId === lead.id ? "Generating..." : "Generate Demo"}
+                        </button>
+                      )}
+                      {(lead.status === "demo_ready" || lead.status === "drafted") && (
+                        <a
+                          href={`/runs/${lead.run_id}/outreach`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 inline-block"
+                        >
+                          Draft Email
+                        </a>
+                      )}
                     </td>
                   </tr>
                 );
