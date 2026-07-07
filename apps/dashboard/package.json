@@ -10,7 +10,6 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/nextjs": "^0.28",
     "@outreach-engine/types": "workspace:*",
     "@outreach-engine/utils": "workspace:*",
     "@supabase/supabase-js": "^2.38",

@@ -44,14 +44,15 @@ npm install
 
 ```bash
 cp .env.example .env.local
-# Fill in all secrets:
+# Fill in all secrets (no auth keys needed for personal project):
 # - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY
 # - GOOGLE_PLACES_API_KEY, GOOGLE_PAGESPEED_API_KEY
 # - ANTHROPIC_API_KEY
 # - CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ZONE_ID
-# - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY
 # - WORKER_API_URL (http://localhost:8787 for local dev)
 ```
+
+**Note**: Removed Clerk auth for personal project simplicity. All runs saved under `user_id='personal-project'`.
 
 ### 3. Database Setup
 
@@ -102,7 +103,7 @@ wrangler deploy
 
 **Database → Supabase:** Already running (migrations applied).
 
-## Phase 0 Features
+## Phase 0 ✅ Features
 
 ✅ Discover businesses via Google Places API (`niche` + `city`)  
 ✅ Audit: PageSpeed Insights (mobile + desktop), HTML parsing, SSL check  
@@ -112,7 +113,18 @@ wrangler deploy
 ✅ Dashboard worklist: ranked by priority, filter by status  
 ✅ Screenshots captured to R2 + displayed in modal  
 
-## Phase 1 (Coming)
+## Phase 1 ✅ Features
+
+✅ Hand-built niche templates (Thai restaurant example included)  
+✅ Claude copy-fill: business data → JSON tokens (tagline, story, services, testimonials, hours)  
+✅ Token replacement: render template HTML with business-specific content  
+✅ Photo download & brand color sampling  
+✅ Demo generation: upload to R2, get stable URL per business  
+✅ Dashboard: "Generate Demo" button on qualified leads  
+✅ Live preview: view generated site via shareable URL  
+✅ Demo link in lead modal  
+
+## Phase 2 (Coming)
 
 - Hand-built niche templates (1 per niche with `{{TOKENS}}`)
 - Claude copy-fill (JSON → token replacement)
