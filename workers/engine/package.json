@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20231218",
-    "@outreach-engine/types": "workspace:*",
-    "@outreach-engine/utils": "workspace:*",
+    "@outreach-engine/types": "*",
+    "@outreach-engine/utils": "*",
     "@supabase/supabase-js": "^2.38",
     "anthropic": "^0.24"
   },

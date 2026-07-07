@@ -1,4 +1,3 @@
 {
-  "buildCommand": "turbo run build --filter=outreach-dashboard",
   "outputDirectory": "apps/dashboard/.next"
 }

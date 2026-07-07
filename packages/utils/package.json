@@ -13,7 +13,7 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@outreach-engine/types": "workspace:*"
+    "@outreach-engine/types": "*"
   },
   "devDependencies": {
     "@types/node": "^20.10",

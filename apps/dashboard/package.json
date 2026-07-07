@@ -10,8 +10,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@outreach-engine/types": "workspace:*",
-    "@outreach-engine/utils": "workspace:*",
+    "@outreach-engine/types": "*",
+    "@outreach-engine/utils": "*",
     "@supabase/supabase-js": "^2.38",
     "@radix-ui/react-dialog": "^1.1",
     "@radix-ui/react-select": "^2.0",
