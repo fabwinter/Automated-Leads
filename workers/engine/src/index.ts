@@ -3,6 +3,7 @@ import { validateEnv } from "./lib/env";
 import { createSupabaseClient } from "./lib/supabase";
 import { createR2Storage } from "./lib/r2";
 import { handleDiscover } from "./handlers/discover";
+import { handleGenerateDemo } from "./handlers/generate";
 
 export interface Env {
   SUPABASE_URL: string;
@@ -36,6 +37,11 @@ export default {
     // Route: POST /discover
     if (url.pathname === "/discover") {
       return await handleDiscoverEndpoint(request, env);
+    }
+
+    // Route: POST /generate-demo (Phase 1)
+    if (url.pathname === "/generate-demo") {
+      return await handleGenerateDemoEndpoint(request, env);
     }
 
     return new Response("Not found", { status: 404 });
@@ -123,6 +129,99 @@ async function handleDiscoverEndpoint(
         status: 500,
         headers: { "Content-Type": "application/json" },
       }
+    );
+  }
+}
+
+/**
+ * Handle POST /generate-demo request (Phase 1).
+ * Request body: { lead_id, run_id }
+ * Generates demo site from template.
+ */
+async function handleGenerateDemoEndpoint(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  try {
+    const validatedEnv = validateEnv(env);
+    const body = (await request.json()) as { lead_id: string; run_id: string };
+
+    if (!body.lead_id || !body.run_id) {
+      return new Response(
+        JSON.stringify({ status: "error", message: "Missing required fields" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createSupabaseClient(
+      validatedEnv.SUPABASE_URL,
+      validatedEnv.SUPABASE_SERVICE_ROLE_KEY
+    );
+    const r2 = createR2Storage(env.R2, validatedEnv.CLOUDFLARE_ACCOUNT_ID);
+
+    // Fetch lead + audit + template
+    const { data: lead, error: leadError } = await supabase.client
+      .from("leads")
+      .select()
+      .eq("id", body.lead_id)
+      .single();
+
+    if (leadError || !lead) {
+      return new Response(
+        JSON.stringify({ status: "error", message: "Lead not found" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: audit } = await supabase.client
+      .from("audits")
+      .select()
+      .eq("lead_id", body.lead_id)
+      .single();
+
+    const { data: template } = await supabase.client
+      .from("templates")
+      .select()
+      .eq("niche", lead.niche)
+      .single();
+
+    if (!template) {
+      return new Response(
+        JSON.stringify({
+          status: "error",
+          message: `No template for niche: ${lead.niche}`,
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Generate demo
+    const result = await handleGenerateDemo(lead, audit, template, supabase, r2, {
+      anthropicApiKey: validatedEnv.ANTHROPIC_API_KEY,
+    });
+
+    if (!result.success) {
+      return new Response(
+        JSON.stringify({ status: "error", message: result.error }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        status: "success",
+        demoUrl: result.demoUrl,
+        message: `Demo generated for ${lead.name}`,
+      }),
+      { status: 201, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("Generate demo error:", errorMsg);
+
+    return new Response(
+      JSON.stringify({ status: "error", message: errorMsg }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

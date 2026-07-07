@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Lead, Audit, Run } from "@outreach-engine/types";
 
 export class SupabaseClient {
-  private client: ReturnType<typeof createClient>;
+  client: ReturnType<typeof createClient>;
 
   constructor(url: string, serviceRoleKey: string) {
     this.client = createClient(url, serviceRoleKey, {
@@ -128,6 +128,19 @@ export class SupabaseClient {
 
     if (error) {
       throw new Error(`Failed to increment metric: ${error.message}`);
+    }
+    return data;
+  }
+
+  async upsertDemo(demo: any) {
+    const { data, error } = await this.client
+      .from("demos")
+      .upsert(demo)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to upsert demo: ${error.message}`);
     }
     return data;
   }

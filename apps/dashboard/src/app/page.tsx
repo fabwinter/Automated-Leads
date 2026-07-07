@@ -1,12 +1,7 @@
-import { auth, redirectToSignIn } from "@clerk/nextjs";
 import Link from "next/link";
 import { fetchUserRuns, fetchLeadsForRun, fetchAuditsForLeads } from "@/lib/supabase";
 
 export default async function DashboardPage() {
-  const { userId } = auth();
-  if (!userId) {
-    return redirectToSignIn();
-  }
 
   let runs: any[] = [];
   let runStats: Record<string, any> = {};

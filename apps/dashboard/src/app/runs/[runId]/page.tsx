@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { fetchRun, fetchLeadsForRun, fetchAuditsForLeads } from "@/lib/supabase";
+import { fetchRun, fetchLeadsForRun, fetchAuditsForLeads, supabase } from "@/lib/supabase";
 import type { Run, Lead, Audit } from "@outreach-engine/types";
 
 export default function WorklistPage({ params }: { params: { runId: string } }) {
@@ -9,10 +9,12 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
   const [run, setRun] = useState<Run | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [audits, setAudits] = useState<Map<string, Audit>>(new Map());
+  const [demos, setDemos] = useState<Map<string, any>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDead, setShowDead] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [generatingDemoId, setGeneratingDemoId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -30,6 +32,22 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
 
         const auditsData = await fetchAuditsForLeads(leadsData.map((l) => l.id));
         setAudits(auditsData);
+
+        // Fetch demos
+        const demosMap = new Map();
+        const { data: demosData } = await supabase
+          .from("demos")
+          .select()
+          .in(
+            "lead_id",
+            leadsData.map((l) => l.id)
+          );
+        if (demosData) {
+          for (const demo of demosData) {
+            demosMap.set(demo.lead_id, demo);
+          }
+        }
+        setDemos(demosMap);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load data");
       } finally {
@@ -42,6 +60,35 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, [runId]);
+
+  async function generateDemo(leadId: string) {
+    setGeneratingDemoId(leadId);
+    try {
+      const response = await fetch("/api/generate-demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_id: leadId, run_id: runId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate demo");
+      }
+
+      const result = await response.json();
+      if (result.demoUrl) {
+        // Reload data to show new demo
+        const leadsData = await fetchLeadsForRun(runId);
+        setLeads(leadsData);
+      }
+    } catch (err) {
+      alert(
+        "Error generating demo: " +
+          (err instanceof Error ? err.message : "Unknown error")
+      );
+    } finally {
+      setGeneratingDemoId(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -169,11 +216,24 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
                       {lead.priority.toFixed(0)}
                     </td>
                     <td className="py-4 px-4">
-                      <span
-                        className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusColor}`}
-                      >
-                        {lead.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-block px-2 py-1 rounded text-xs font-medium ${statusColor}`}
+                        >
+                          {lead.status}
+                        </span>
+                        {lead.status === "qualified" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              generateDemo(lead.id);
+                            }}
+                            className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                          >
+                            Generate Demo
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -187,6 +247,7 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
         <LeadModal
           lead={selectedLead}
           audit={audits.get(selectedLead.id)}
+          demos={demos}
           onClose={() => setSelectedLead(null)}
         />
       )}
@@ -197,12 +258,16 @@ export default function WorklistPage({ params }: { params: { runId: string } }) 
 function LeadModal({
   lead,
   audit,
+  demos,
   onClose,
 }: {
   lead: Lead;
   audit?: Audit;
+  demos?: Map<string, any>;
   onClose: () => void;
 }) {
+  const demo = demos?.get(lead.id);
+
   return (
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -262,6 +327,23 @@ function LeadModal({
               <div>
                 <div className="text-sm text-muted-foreground">Phone</div>
                 <div className="text-foreground">{lead.phone}</div>
+              </div>
+            )}
+
+            {demo && (
+              <div className="border-t pt-4">
+                <div className="text-sm font-semibold text-foreground mb-2">
+                  Demo Site
+                </div>
+                <a
+                  href={demo.deploy_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline text-sm"
+                >
+                  View live demo →
+                </a>
+                <p className="text-xs text-muted-foreground mt-1">{demo.deploy_url}</p>
               </div>
             )}
 

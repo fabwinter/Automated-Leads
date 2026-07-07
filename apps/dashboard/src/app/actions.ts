@@ -1,6 +1,5 @@
 "use server";
 
-import { auth } from "@clerk/nextjs";
 import { createClient } from "@supabase/supabase-js";
 import type { CreateRunRequest } from "@outreach-engine/types";
 
@@ -12,10 +11,7 @@ const workerUrl = process.env.WORKER_API_URL || "http://localhost:8787";
  * Server action: Create a run and kick off discovery.
  */
 export async function createRunAndDiscover(input: CreateRunRequest) {
-  const { userId } = auth();
-  if (!userId) {
-    return { error: "Unauthorized" };
-  }
+  const userId = "personal-project"; // Single user for personal project
 
   try {
     // Create Supabase client with service role for server-side operations
