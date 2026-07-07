@@ -1,0 +1,24 @@
+{
+  "name": "outreach-engine-worker",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish",
+    "build": "esbuild src/index.ts --bundle --outfile=dist/index.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20231218",
+    "@outreach-engine/types": "workspace:*",
+    "@outreach-engine/utils": "workspace:*",
+    "@supabase/supabase-js": "^2.38",
+    "anthropic": "^0.24"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10",
+    "esbuild": "^0.19",
+    "typescript": "^5.3",
+    "wrangler": "^3.20"
+  }
+}

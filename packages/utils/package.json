@@ -1,0 +1,23 @@
+{
+  "name": "@outreach-engine/utils",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@outreach-engine/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10",
+    "typescript": "^5.3",
+    "vitest": "^1.1"
+  }
+}

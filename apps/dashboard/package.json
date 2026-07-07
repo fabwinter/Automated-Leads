@@ -1,0 +1,40 @@
+{
+  "name": "outreach-dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^0.28",
+    "@outreach-engine/types": "workspace:*",
+    "@outreach-engine/utils": "workspace:*",
+    "@supabase/supabase-js": "^2.38",
+    "@radix-ui/react-dialog": "^1.1",
+    "@radix-ui/react-select": "^2.0",
+    "@radix-ui/react-slot": "^2.0",
+    "class-variance-authority": "^0.7",
+    "clsx": "^2.0",
+    "lucide-react": "^0.378",
+    "next": "^14.0",
+    "react": "^18.2",
+    "react-dom": "^18.2",
+    "tailwindcss-animate": "^1.0",
+    "zod": "^3.22"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10",
+    "@types/react": "^18.2",
+    "@types/react-dom": "^18.2",
+    "autoprefixer": "^10.4",
+    "eslint": "^8.54",
+    "eslint-config-next": "^14.0",
+    "postcss": "^8.4",
+    "tailwindcss": "^3.3",
+    "typescript": "^5.3"
+  }
+}

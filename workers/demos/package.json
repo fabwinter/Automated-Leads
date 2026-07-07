@@ -1,0 +1,16 @@
+{
+  "name": "outreach-demos-worker",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler publish",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218",
+    "@types/node": "^20.10",
+    "typescript": "^5.3",
+    "wrangler": "^3.20"
+  }
+}
