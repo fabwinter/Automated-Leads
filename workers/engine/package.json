@@ -13,7 +13,7 @@
     "@outreach-engine/types": "*",
     "@outreach-engine/utils": "*",
     "@supabase/supabase-js": "^2.38",
-    "anthropic": "^0.24"
+    "anthropic": "^0.31"
   },
   "devDependencies": {
     "@types/node": "^20.10",
